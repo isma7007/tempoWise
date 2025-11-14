@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,13 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { seedInitialData } from '@/lib/data';
-import { getAuth, onAuthStateChanged, UserCredential, User } from 'firebase/auth';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, UserCredential, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -52,8 +50,10 @@ export function AuthForm({ mode }: AuthFormProps) {
             await signInWithEmailAndPassword(auth, data.email, data.password);
         } else {
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            // Ensure seeding is complete before moving on
             await seedInitialData(userCredential.user.uid, firestore);
         }
+        // Redirect after successful login or signup + seeding
         router.push('/');
     } catch (error: any) {
         toast({
