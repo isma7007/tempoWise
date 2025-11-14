@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type Category = {
   id: string;
   name: string;
@@ -7,18 +9,17 @@ export type Category = {
 export type Activity = {
   id: string;
   description: string;
-  category: Category;
+  categoryId: string;
   tags: string[];
-  startTime: Date;
-  endTime: Date;
+  startTime: Timestamp | Date;
+  endTime: Timestamp | Date;
   duration: number; // in seconds
 };
 
 export type Goal = {
   id: string;
-  category: Category;
+  categoryId: string;
   targetHours: number;
-  currentHours: number;
   name: string;
 };
 

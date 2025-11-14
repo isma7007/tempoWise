@@ -5,9 +5,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Pause, Play, Square } from 'lucide-react';
-import { categories } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { AITagSuggester } from './ai-tag-suggester';
+import { useFirebase, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export function ActivityTimer() {
   const [description, setDescription] = useState('');
@@ -15,7 +16,16 @@ export function ActivityTimer() {
   const [tags, setTags] = useState<string[]>([]);
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+
   const { toast } = useToast();
+  const { firestore, user } = useFirebase();
+
+  const categoriesRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'categories');
+  }, [user, firestore]);
+  const { data: categories } = useCollection(categoriesRef);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -45,16 +55,35 @@ export function ActivityTimer() {
       });
       return;
     }
+    if (!isRunning) {
+      setStartTime(new Date());
+    }
     setIsRunning(!isRunning);
   };
   
   const handleStop = () => {
+    if (!firestore || !user || !startTime) return;
+
+    const activitiesCollection = collection(firestore, 'users', user.uid, 'activities');
+    const newActivity = {
+      description,
+      categoryId: selectedCategory,
+      tags,
+      startTime,
+      endTime: new Date(),
+      duration: time, // in seconds
+    };
+    
+    addDocumentNonBlocking(activitiesCollection, newActivity);
+
     toast({
       title: "Activity Logged",
       description: `Logged "${description}" for ${formatTime(time)}.`,
     });
+
     setIsRunning(false);
     setTime(0);
+    setStartTime(null);
     setDescription('');
     setSelectedCategory(undefined);
     setTags([]);
@@ -82,7 +111,7 @@ export function ActivityTimer() {
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((cat) => (
+            {categories?.map((cat) => (
               <SelectItem key={cat.id} value={cat.id}>
                 <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{backgroundColor: cat.color}} />

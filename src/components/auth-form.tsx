@@ -14,6 +14,8 @@ import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blockin
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { seedInitialData } from '@/lib/data';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -29,7 +31,7 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
 
   const {
@@ -43,21 +45,40 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const onSubmit = async (data: UserFormValue) => {
     setIsLoading(true);
+
+    const handleAuthSuccess = (user: User) => {
+      if (mode === 'signup') {
+        seedInitialData(user.uid, firestore);
+      }
+      router.push('/');
+      setIsLoading(false);
+      unsubscribe();
+    }
+
+    const handleAuthError = (error: any) => {
+      toast({
+        title: `Authentication Failed`,
+        description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      unsubscribe();
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if(user) {
+            handleAuthSuccess(user);
+        }
+    }, handleAuthError);
+
     try {
         if (mode === 'login') {
             await initiateEmailSignIn(auth, data.email, data.password);
         } else {
             await initiateEmailSignUp(auth, data.email, data.password);
         }
-        router.push('/');
     } catch (error: any) {
-      toast({
-        title: `Authentication Failed`,
-        description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+        handleAuthError(error);
     }
   };
 
