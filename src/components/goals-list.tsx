@@ -8,13 +8,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { useFirebase, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 import type { Activity, Category, Goal } from "@/lib/types";
 import { useState } from "react";
+import { addGoal } from "@/app/data/operations";
+import { useToast } from "@/hooks/use-toast";
 
 export function GoalsList() {
     const { firestore, user } = useFirebase();
+    const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
     const [categoryId, setCategoryId] = useState("");
@@ -50,19 +53,24 @@ export function GoalsList() {
         return totalSeconds / 3600;
     };
 
-    const handleCreateGoal = () => {
+    const handleCreateGoal = async () => {
         if (!name || !categoryId || !targetHours || !firestore || !user) return;
-        const goalsCollection = collection(firestore, 'users', user.uid, 'weeklyGoals');
-        const newGoal = {
-            name,
-            categoryId,
-            targetHours: Number(targetHours),
-        };
-        addDocumentNonBlocking(goalsCollection, newGoal);
-        setName("");
-        setCategoryId("");
-        setTargetHours("");
-        setOpen(false);
+        
+        try {
+            await addGoal(firestore, user.uid, {
+                name,
+                categoryId,
+                targetHours: Number(targetHours),
+            });
+            
+            toast({ title: "Goal Created", description: `Your new goal "${name}" has been set.` });
+            setName("");
+            setCategoryId("");
+            setTargetHours("");
+            setOpen(false);
+        } catch (error) {
+            toast({ title: "Error", description: "Could not create the goal.", variant: "destructive" });
+        }
     }
     
     return (

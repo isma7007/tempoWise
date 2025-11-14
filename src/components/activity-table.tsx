@@ -4,8 +4,8 @@ import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Activity, Category } from "@/lib/types";
-import { useFirebase, deleteDocumentNonBlocking } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useFirebase } from "@/firebase";
+import { deleteActivity } from "@/app/data/operations";
 
 interface ActivityTableProps {
   activities: (Activity & { id: string; category?: Category })[];
@@ -22,8 +22,7 @@ export function ActivityTable({ activities }: ActivityTableProps) {
 
   const handleDelete = (activityId: string) => {
     if (!firestore || !user) return;
-    const activityRef = doc(firestore, 'users', user.uid, 'activities', activityId);
-    deleteDocumentNonBlocking(activityRef);
+    deleteActivity(firestore, user.uid, activityId);
   };
 
   const getFirebaseTimestamp = (date: any) => {

@@ -1,49 +1,72 @@
 "use client"
 
-import { useUser } from "@/firebase";
+import { useUser, useFirebase } from "@/firebase";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar, SidebarInset, SidebarProvider } from "./ui/sidebar";
 import SideNav from "./side-nav";
 import { AppHeader } from "./app-header";
 import { Loader2 } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { seedInitialData } from "@/app/data/operations";
 
 const protectedRoutes = ["/", "/activities", "/goals", "/settings", "/statistics"];
 const authRoutes = ["/login", "/signup"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
+    const { firestore } = useFirebase();
     const pathname = usePathname();
     const router = useRouter();
+    const [isSeeding, setIsSeeding] = useState(false);
 
     useEffect(() => {
         if (isUserLoading) return; // Wait until user status is resolved
 
-        const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
-        const isAuthRoute = authRoutes.includes(pathname);
+        const handleUserSession = async () => {
+            const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
+            const isAuthRoute = authRoutes.includes(pathname);
 
-        if (!user && isProtectedRoute) {
-            router.push('/login');
-        }
+            if (!user) {
+                if (isProtectedRoute) {
+                    router.push('/login');
+                }
+                return;
+            }
 
-        if (user && isAuthRoute) {
-            router.push('/');
-        }
+            // If user is logged in, check if they have been seeded
+            if (firestore) {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
 
-    }, [user, isUserLoading, pathname, router]);
-    
-    // While checking user auth, show a loading screen.
-    if (isUserLoading) {
+                if (!userDoc.exists()) {
+                    setIsSeeding(true);
+                    await seedInitialData(user.uid, firestore);
+                    // Don't set isSeeding to false immediately, let the redirect happen
+                    // The component will unmount, and state will be reset on next load
+                }
+            }
+
+            if (isAuthRoute) {
+                router.push('/');
+            }
+        };
+
+        handleUserSession();
+
+    }, [user, isUserLoading, pathname, router, firestore]);
+
+    if (isUserLoading || isSeeding) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
+                {isSeeding && <p className="ml-4">Preparing your account...</p>}
             </div>
         )
     }
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
     
-    // If we have a user and they are on a protected route, render the app layout
     if (user && isProtectedRoute) {
         return (
             <SidebarProvider>
@@ -62,6 +85,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
     }
     
-    // For auth pages or if user is not logged in on a public page
     return <>{children}</>;
 }

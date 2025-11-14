@@ -13,7 +13,6 @@ import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { seedInitialData } from '@/lib/data';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 const formSchema = z.object({
@@ -29,7 +28,7 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { auth, firestore } = useFirebase();
+  const { auth } = useFirebase();
   const router = useRouter();
 
   const {
@@ -42,14 +41,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { toast } = useToast();
 
   const onSubmit = async (data: UserFormValue) => {
-    if (!auth || !firestore) return;
+    if (!auth) return;
     setIsLoading(true);
     try {
         if (mode === 'login') {
             await signInWithEmailAndPassword(auth, data.email, data.password);
         } else {
-            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-            await seedInitialData(userCredential.user.uid, firestore);
+            await createUserWithEmailAndPassword(auth, data.email, data.password);
         }
         router.push('/');
     } catch (error: any) {

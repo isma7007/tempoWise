@@ -7,8 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Pause, Play, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AITagSuggester } from './ai-tag-suggester';
-import { useFirebase, addDocumentNonBlocking, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirebase, useMemoFirebase, useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { addActivity } from '@/app/data/operations';
+import type { Category } from '@/lib/types';
+
 
 export function ActivityTimer() {
   const [description, setDescription] = useState('');
@@ -25,7 +28,7 @@ export function ActivityTimer() {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'categories');
   }, [user, firestore]);
-  const { data: categories } = useCollection(categoriesRef);
+  const { data: categories } = useCollection<Category>(categoriesRef);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -61,32 +64,37 @@ export function ActivityTimer() {
     setIsRunning(!isRunning);
   };
   
-  const handleStop = () => {
-    if (!firestore || !user || !startTime) return;
+  const handleStop = async () => {
+    if (!firestore || !user || !startTime || !selectedCategory) return;
 
-    const activitiesCollection = collection(firestore, 'users', user.uid, 'activities');
-    const newActivity = {
-      description,
-      categoryId: selectedCategory,
-      tags,
-      startTime,
-      endTime: new Date(),
-      duration: time, // in seconds
-    };
-    
-    addDocumentNonBlocking(activitiesCollection, newActivity);
+    try {
+      await addActivity(firestore, user.uid, {
+        description,
+        categoryId: selectedCategory,
+        tags,
+        startTime,
+        endTime: new Date(),
+        duration: time,
+      });
 
-    toast({
-      title: "Activity Logged",
-      description: `Logged "${description}" for ${formatTime(time)}.`,
-    });
+      toast({
+        title: "Activity Logged",
+        description: `Logged "${description}" for ${formatTime(time)}.`,
+      });
 
-    setIsRunning(false);
-    setTime(0);
-    setStartTime(null);
-    setDescription('');
-    setSelectedCategory(undefined);
-    setTags([]);
+      setIsRunning(false);
+      setTime(0);
+      setStartTime(null);
+      setDescription('');
+      setSelectedCategory(undefined);
+      setTags([]);
+    } catch (error) {
+       toast({
+        title: "Error Logging Activity",
+        description: "Could not save the activity. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onTagsSuggested = useCallback((suggestedTags: string[]) => {
