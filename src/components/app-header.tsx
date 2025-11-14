@@ -9,6 +9,7 @@ import { LifeBuoy, LogOut, Settings, User } from "lucide-react";
 import { Menu } from "lucide-react";
 import { useUser } from "@/firebase";
 import { getAuth, signOut } from "firebase/auth";
+import { ThemeToggle } from "./theme-toggle";
 
 export function AppHeader() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
@@ -33,7 +34,8 @@ export function AppHeader() {
         </Button>
       </SidebarTrigger>
       <h1 className="text-lg font-semibold md:text-xl">TempoWise</h1>
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-4">
+        <ThemeToggle />
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

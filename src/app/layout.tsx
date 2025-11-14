@@ -5,6 +5,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { AuthProvider } from '@/components/auth-provider';
 import { FocusModeProvider } from '@/context/focus-mode-context';
 import { Inter, Sora } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const fontSora = Sora({
   subsets: ['latin'],
@@ -30,14 +31,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-body antialiased ${fontInter.variable} ${fontSora.variable}`}>
-        <FirebaseClientProvider>
-          <FocusModeProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </FocusModeProvider>
-        </FirebaseClientProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <FirebaseClientProvider>
+            <FocusModeProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </FocusModeProvider>
+          </FirebaseClientProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
