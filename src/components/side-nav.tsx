@@ -30,9 +30,11 @@ export default function SideNav() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-accent-foreground" />
-            <h1 className="text-xl font-semibold">TempoWise</h1>
+        <div className="flex items-center gap-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Zap className="w-5 h-5" />
+            </div>
+            <h1 className="font-headline text-lg font-semibold text-primary-foreground">TempoWise</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>

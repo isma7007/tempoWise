@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 animated-card">
           <CardHeader>
             <CardTitle>Activity Tracker</CardTitle>
             <CardDescription>What are you working on?</CardDescription>
@@ -20,7 +20,7 @@ export default function Home() {
         </Card>
 
         <div className="space-y-8">
-          <Card>
+          <Card className="animated-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
                 Today's Summary
@@ -35,7 +35,7 @@ export default function Home() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="animated-card">
              <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
                 Focus Session
