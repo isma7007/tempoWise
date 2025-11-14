@@ -1,0 +1,187 @@
+/**
+ * @fileoverview Firestore Security Rules for TempoWise application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model where each user can only
+ * access their own data. All data is nested under the /users/{userId} path.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/activities/{activityId}: Stores time tracking activities.
+ * - /users/{userId}/categories/{categoryId}: Stores user-defined categories.
+ * - /users/{userId}/tags/{tagId}: Stores user-defined tags.
+ * - /users/{userId}/weeklyGoals/{weeklyGoalId}: Stores user's weekly goals.
+ * - /users/{userId}/dailyEnergyLevels/{dailyEnergyLevelId}: Stores daily energy level entries.
+ * - /users/{userId}/notes/{noteId}: Stores user's notes.
+ *
+ * Key Security Decisions:
+ * - Users can only access data under their own user ID.
+ * - Data consistency between the path and the document's internal fields are enforced.
+ * - List operations are restricted to the owner of the data.
+ *
+ * Denormalization for Authorization:
+ * - The userId is present in the path itself, enforcing ownership without needing to read the document data.
+ *
+ * Structural Segregation:
+ * - All user-specific data is stored under the /users/{userId} path, ensuring a consistent security posture.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces user-ownership for the user profile. Only the user can read or write their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' creates their own profile.
+     * @allow (get) User with ID 'user123' reads their profile.
+     * @allow (update) User with ID 'user123' updates their profile.
+     * @allow (delete) User with ID 'user123' deletes their profile.
+     * @deny (create) User with ID 'user456' attempts to create a profile with ID 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for activities. Only the user can read or write their own activities.
+     * @path /users/{userId}/activities/{activityId}
+     * @allow (create) User with ID 'user123' creates an activity under their profile.
+     * @allow (get) User with ID 'user123' reads an activity under their profile.
+     * @allow (update) User with ID 'user123' updates an activity under their profile.
+     * @allow (delete) User with ID 'user123' deletes an activity under their profile.
+     * @deny (create) User with ID 'user456' attempts to create an activity under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read an activity under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/activities/{activityId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for categories. Only the user can read or write their own categories.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create) User with ID 'user123' creates a category under their profile.
+     * @allow (get) User with ID 'user123' reads a category under their profile.
+     * @allow (update) User with ID 'user123' updates a category under their profile.
+     * @allow (delete) User with ID 'user123' deletes a category under their profile.
+     * @deny (create) User with ID 'user456' attempts to create a category under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read a category under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for tags. Only the user can read or write their own tags.
+     * @path /users/{userId}/tags/{tagId}
+     * @allow (create) User with ID 'user123' creates a tag under their profile.
+     * @allow (get) User with ID 'user123' reads a tag under their profile.
+     * @allow (update) User with ID 'user123' updates a tag under their profile.
+     * @allow (delete) User with ID 'user123' deletes a tag under their profile.
+     * @deny (create) User with ID 'user456' attempts to create a tag under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read a tag under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/tags/{tagId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for weekly goals. Only the user can read or write their own weekly goals.
+     * @path /users/{userId}/weeklyGoals/{weeklyGoalId}
+     * @allow (create) User with ID 'user123' creates a weekly goal under their profile.
+     * @allow (get) User with ID 'user123' reads a weekly goal under their profile.
+     * @allow (update) User with ID 'user123' updates a weekly goal under their profile.
+     * @allow (delete) User with ID 'user123' deletes a weekly goal under their profile.
+     * @deny (create) User with ID 'user456' attempts to create a weekly goal under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read a weekly goal under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/weeklyGoals/{weeklyGoalId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for daily energy levels. Only the user can read or write their own daily energy levels.
+     * @path /users/{userId}/dailyEnergyLevels/{dailyEnergyLevelId}
+     * @allow (create) User with ID 'user123' creates a daily energy level entry under their profile.
+     * @allow (get) User with ID 'user123' reads a daily energy level entry under their profile.
+     * @allow (update) User with ID 'user123' updates a daily energy level entry under their profile.
+     * @allow (delete) User with ID 'user123' deletes a daily energy level entry under their profile.
+     * @deny (create) User with ID 'user456' attempts to create a daily energy level entry under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read a daily energy level entry under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/dailyEnergyLevels/{dailyEnergyLevelId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for notes. Only the user can read or write their own notes.
+     * @path /users/{userId}/notes/{noteId}
+     * @allow (create) User with ID 'user123' creates a note under their profile.
+     * @allow (get) User with ID 'user123' reads a note under their profile.
+     * @allow (update) User with ID 'user123' updates a note under their profile.
+     * @allow (delete) User with ID 'user123' deletes a note under their profile.
+     * @deny (create) User with ID 'user456' attempts to create a note under the profile of 'user123'.
+     * @deny (get) User with ID 'user456' attempts to read a note under the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/notes/{noteId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+  }
+}

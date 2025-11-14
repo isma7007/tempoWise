@@ -1,0 +1,183 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the TempoWise application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/activities/{activityId}",
+        "definition": {
+          "entityName": "activity",
+          "schema": {
+            "$ref": "#/backend/entities/activity"
+          },
+          "description": "Stores time tracking activity data for a specific user. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "activityId",
+              "description": "The unique identifier for a time tracking activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "category",
+          "schema": {
+            "$ref": "#/backend/entities/category"
+          },
+          "description": "Stores categories created by the user. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for a category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/tags/{tagId}",
+        "definition": {
+          "entityName": "tag",
+          "schema": {
+            "$ref": "#/backend/entities/tag"
+          },
+          "description": "Stores tags created by the user. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "tagId",
+              "description": "The unique identifier for a tag."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/weeklyGoals/{weeklyGoalId}",
+        "definition": {
+          "entityName": "weeklyGoal",
+          "schema": {
+            "$ref": "#/backend/entities/weeklyGoal"
+          },
+          "description": "Stores weekly goals defined by the user for different categories. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "weeklyGoalId",
+              "description": "The unique identifier for a weekly goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/dailyEnergyLevels/{dailyEnergyLevelId}",
+        "definition": {
+          "entityName": "dailyEnergyLevel",
+          "schema": {
+            "$ref": "#/backend/entities/dailyEnergyLevel"
+          },
+          "description": "Stores the user's daily energy levels and motivation scores. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "dailyEnergyLevelId",
+              "description": "The unique identifier for a daily energy level entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notes/{noteId}",
+        "definition": {
+          "entityName": "note",
+          "schema": {
+            "$ref": "#/backend/entities/note"
+          },
+          "description": "Stores notes added by the user. Accessible only by the user themselves (identified by `userId`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "noteId",
+              "description": "The unique identifier for a note."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed for the TempoWise application, focusing on secure and scalable data management for time tracking and productivity analysis. It adheres to the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), QAPs (Queries are not Filters), and Invariants.\n\n**Authorization Independence:** The structure uses path-based ownership (`/users/{userId}/...`) to ensure that access control for a user's data is independent of other users.  No `get()` calls are needed to validate ownership.\n\n**Clarity of Intent:**  The paths clearly indicate the owner of the data (e.g., `/users/{userId}/activities/{activityId}`).\n\n**DBAC:** Authorization rules rely on `request.auth.uid` and the path structure. No custom claims are used.  User roles are implicitly defined by their ability to access their own data.\n\n**QAPs:** The structure is designed to support secure `list` operations.  For example, a user can only list their own activities under `/users/{userId}/activities`.\n\n**Invariants:**  The structure facilitates the enforcement of invariants such as ownership and timestamps. Security rules can enforce that a user can only create, update, or delete data under their own user ID. Timestamps (e.g., `createdAt` in the `User` entity) can be enforced during creation.\n\n**Denormalization Strategy:** No explicit denormalization is required, as the primary data relationships are structured using path-based ownership.\n\n**Structural Segregation:** Data is segregated by user, ensuring that each user's data has a consistent security posture. There's no mixing of public and private data within the same collections.\n\n**Access Modeling:** Path-based ownership (`/users/{userId}/...`) is used for user-owned data."
+  }
+}
