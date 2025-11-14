@@ -15,14 +15,15 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { Activity, Category, Goal } from '@/lib/types';
 
 // Generic function to add a document and handle errors
-async function addDocument<T>(
+async function addDocument<T extends object>(
   db: Firestore,
   path: string,
   data: T
 ) {
   const colRef = collection(db, path);
   try {
-    return await addDoc(colRef, data);
+    const docData = { ...data, createdAt: Timestamp.now() };
+    return await addDoc(colRef, docData);
   } catch (error) {
     errorEmitter.emit(
       'permission-error',
@@ -37,10 +38,10 @@ async function addDocument<T>(
 }
 
 // Generic function to set a document and handle errors
-async function setDocument<T>(db: Firestore, path: string, data: T) {
+async function setDocument<T extends object>(db: Firestore, path: string, data: T) {
     const docRef = doc(db, path);
     try {
-        await setDoc(docRef, data);
+        await setDoc(docRef, data, { merge: true });
     } catch (error) {
         errorEmitter.emit(
             'permission-error',
@@ -55,10 +56,11 @@ async function setDocument<T>(db: Firestore, path: string, data: T) {
 }
 
 // Generic function to update a document and handle errors
-async function updateDocument<T>(db: Firestore, path: string, data: Partial<T>) {
+async function updateDocument<T extends object>(db: Firestore, path:string, data: Partial<T>) {
     const docRef = doc(db, path);
     try {
-        await updateDoc(docRef, data);
+        const updateData = { ...data, updatedAt: Timestamp.now() };
+        await updateDoc(docRef, updateData);
     } catch (error) {
         errorEmitter.emit(
             'permission-error',
@@ -92,19 +94,35 @@ async function deleteDocument(db: Firestore, path: string) {
 
 // --- Specific Operations ---
 
+type ActivityInput = Omit<Activity, 'id' | 'startTime' | 'endTime'> & { startTime: Date, endTime: Date | null };
+
 // Activities
 export const addActivity = (
   db: Firestore,
   userId: string,
-  activity: Omit<Activity, 'id' | 'startTime' | 'endTime'> & { startTime: Date, endTime: Date }
+  activity: ActivityInput
 ) => {
   const data = {
     ...activity,
     startTime: Timestamp.fromDate(activity.startTime),
-    endTime: Timestamp.fromDate(activity.endTime as Date),
+    endTime: activity.endTime ? Timestamp.fromDate(activity.endTime) : null,
   };
   return addDocument(db, `users/${userId}/activities`, data);
 };
+
+export const updateActivity = (
+  db: Firestore,
+  userId: string,
+  activityId: string,
+  activity: ActivityInput
+) => {
+   const data = {
+    ...activity,
+    startTime: Timestamp.fromDate(activity.startTime),
+    endTime: activity.endTime ? Timestamp.fromDate(activity.endTime) : null,
+  };
+  return updateDocument(db, `users/${userId}/activities/${activityId}`, data);
+}
 
 export const deleteActivity = (
   db: Firestore,
@@ -140,7 +158,7 @@ export const addGoal = (
 export async function seedInitialData(userId: string, firestore: Firestore) {
   // 1. Create a user document to mark the user as 'seeded'
   const userDocRef = doc(firestore, 'users', userId);
-  await setDoc(userDocRef, { seeded: true }, { merge: true }).catch((error) => {
+  await setDoc(userDocRef, { seeded: true, createdAt: Timestamp.now() }, { merge: true }).catch((error) => {
      errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
