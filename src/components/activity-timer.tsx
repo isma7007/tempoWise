@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Pause, Play, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AITagSuggester } from './ai-tag-suggester';
-import { useFirebase, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirebase, addDocumentNonBlocking, useMemoFirebase, useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
 export function ActivityTimer() {
