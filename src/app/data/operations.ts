@@ -8,19 +8,22 @@ import {
   setDoc,
   Timestamp,
   Firestore,
+  updateDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { Activity, Category, Goal } from '@/lib/types';
 
 // Generic function to add a document and handle errors
-function addDocument<T>(
+async function addDocument<T>(
   db: Firestore,
   path: string,
   data: T
 ) {
   const colRef = collection(db, path);
-  return addDoc(colRef, data).catch((error) => {
+  try {
+    return await addDoc(colRef, data);
+  } catch (error) {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -30,13 +33,52 @@ function addDocument<T>(
       })
     );
     throw error;
-  });
+  }
 }
 
+// Generic function to set a document and handle errors
+async function setDocument<T>(db: Firestore, path: string, data: T) {
+    const docRef = doc(db, path);
+    try {
+        await setDoc(docRef, data);
+    } catch (error) {
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'write',
+                requestResourceData: data,
+            })
+        );
+        throw error;
+    }
+}
+
+// Generic function to update a document and handle errors
+async function updateDocument<T>(db: Firestore, path: string, data: Partial<T>) {
+    const docRef = doc(db, path);
+    try {
+        await updateDoc(docRef, data);
+    } catch (error) {
+        errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: data,
+            })
+        );
+        throw error;
+    }
+}
+
+
 // Generic function to delete a document and handle errors
-function deleteDocument(db: Firestore, path: string) {
+async function deleteDocument(db: Firestore, path: string) {
   const docRef = doc(db, path);
-  return deleteDoc(docRef).catch((error) => {
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -45,7 +87,7 @@ function deleteDocument(db: Firestore, path: string) {
       })
     );
     throw error;
-  });
+  }
 }
 
 // --- Specific Operations ---
@@ -54,7 +96,7 @@ function deleteDocument(db: Firestore, path: string) {
 export const addActivity = (
   db: Firestore,
   userId: string,
-  activity: Omit<Activity, 'id' | 'startTime'> & { startTime: Date }
+  activity: Omit<Activity, 'id' | 'startTime' | 'endTime'> & { startTime: Date, endTime: Date }
 ) => {
   const data = {
     ...activity,
@@ -72,6 +114,19 @@ export const deleteActivity = (
   return deleteDocument(db, `users/${userId}/activities/${activityId}`);
 };
 
+// Categories
+export const addCategory = (db: Firestore, userId: string, category: Omit<Category, 'id'>) => {
+    return addDocument(db, `users/${userId}/categories`, category);
+}
+
+export const updateCategory = (db: Firestore, userId: string, categoryId: string, data: Partial<Omit<Category, 'id'>>) => {
+    return updateDocument(db, `users/${userId}/categories/${categoryId}`, data);
+}
+
+export const deleteCategory = (db: Firestore, userId: string, categoryId: string) => {
+    return deleteDocument(db, `users/${userId}/categories/${categoryId}`);
+}
+
 // Goals
 export const addGoal = (
   db: Firestore,
@@ -85,13 +140,13 @@ export const addGoal = (
 export async function seedInitialData(userId: string, firestore: Firestore) {
   // 1. Create a user document to mark the user as 'seeded'
   const userDocRef = doc(firestore, 'users', userId);
-  await setDoc(userDocRef, { email: 'user-placeholder@example.com', createdAt: Timestamp.now() }, { merge: true }).catch((error) => {
+  await setDoc(userDocRef, { seeded: true }, { merge: true }).catch((error) => {
      errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: userDocRef.path,
         operation: 'write',
-        requestResourceData: { email: 'user-placeholder@example.com' },
+        requestResourceData: { seeded: true },
       })
     );
     throw error;

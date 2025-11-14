@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { CategoryManager } from "@/components/category-manager";
 
 export default function SettingsPage() {
   return (
@@ -17,16 +18,20 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" defaultValue="John Doe" />
+            <Input id="name" defaultValue="John Doe" disabled />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue="john.doe@example.com" />
+            <Input id="email" type="email" defaultValue="john.doe@example.com" disabled />
           </div>
-          <Button>Save Changes</Button>
+          <Button disabled>Save Changes</Button>
         </CardContent>
       </Card>
       
+      <Separator />
+
+      <CategoryManager />
+
       <Separator />
 
       <Card>
@@ -58,14 +63,14 @@ export default function SettingsPage() {
               <h3 className="font-semibold">Export Data</h3>
               <p className="text-sm text-muted-foreground">Download all your activities in CSV format.</p>
             </div>
-            <Button variant="secondary">Export CSV</Button>
+            <Button variant="secondary" disabled>Export CSV</Button>
           </div>
           <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg">
             <div>
               <h3 className="font-semibold text-destructive">Delete Account</h3>
               <p className="text-sm text-muted-foreground">Permanently delete your account and all data.</p>
             </div>
-            <Button variant="destructive">Delete</Button>
+            <Button variant="destructive" disabled>Delete</Button>
           </div>
         </CardContent>
       </Card>
