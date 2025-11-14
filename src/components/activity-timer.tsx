@@ -67,51 +67,7 @@ export function ActivityTimer() {
     return `${h}:${m}:${s}`;
   };
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isRunning) {
-      interval = setInterval(() => {
-        setTime((prevTime) => {
-          const newTime = prevTime + 1;
-
-          // Check for 30-minute interval notification
-          if (newTime % NOTIFICATION_INTERVAL === 0 && newTime > 0) {
-            setPlayIntervalSound(true);
-          }
-
-          // Check if target duration is reached
-          if (targetDuration > 0 && newTime >= targetDuration) {
-            handleStop(newTime);
-            setPlayCompletionSound(true);
-            return prevTime; // Prevent time from exceeding target
-          }
-
-          return newTime;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, targetDuration]);
-
-  const handleStartPause = () => {
-    if (!description || !selectedCategory) {
-      toast({
-        title: 'Incomplete Information',
-        description: 'Please enter a description and select a category.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (!isRunning) {
-      setStartTime(new Date());
-      setIsFocusMode(true);
-    }
-    setIsRunning(!isRunning);
-  };
-
-  const handleStop = async (finalTime?: number) => {
+  const handleStop = useCallback(async (finalTime?: number) => {
     const duration = finalTime ?? time;
     if (!firestore || !user || !startTime || !selectedCategory || duration === 0)
       return;
@@ -148,6 +104,50 @@ export function ActivityTimer() {
         variant: 'destructive',
       });
     }
+  }, [time, firestore, user, startTime, selectedCategory, description, tags, setIsFocusMode, toast]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTime((prevTime) => {
+          const newTime = prevTime + 1;
+
+          // Check for 30-minute interval notification
+          if (newTime % NOTIFICATION_INTERVAL === 0 && newTime > 0) {
+            setPlayIntervalSound(true);
+          }
+
+          // Check if target duration is reached
+          if (targetDuration > 0 && newTime >= targetDuration) {
+            handleStop(newTime);
+            setPlayCompletionSound(true);
+            return prevTime; // Prevent time from exceeding target
+          }
+
+          return newTime;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, targetDuration, handleStop]);
+
+  const handleStartPause = () => {
+    if (!description || !selectedCategory) {
+      toast({
+        title: 'Incomplete Information',
+        description: 'Please enter a description and select a category.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!isRunning) {
+      setStartTime(new Date());
+      setIsFocusMode(true);
+    }
+    setIsRunning(!isRunning);
   };
 
   const onTagsSuggested = useCallback((suggestedTags: string[]) => {
