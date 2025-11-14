@@ -40,15 +40,16 @@ export default function SideNav() {
         <SidebarMenu>
           {links.map((link) => (
             <SidebarMenuItem key={link.href}>
-              <Link href={link.href} legacyBehavior passHref>
                 <SidebarMenuButton
+                  asChild
                   isActive={pathname === link.href}
                   className="w-full justify-start"
                 >
-                  <link.icon className="h-4 w-4 mr-2" />
-                  {link.label}
+                  <Link href={link.href}>
+                    <link.icon className="h-4 w-4 mr-2" />
+                    {link.label}
+                  </Link>
                 </SidebarMenuButton>
-              </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
@@ -58,15 +59,16 @@ export default function SideNav() {
          <SidebarMenu>
             {bottomLinks.map((link) => (
                 <SidebarMenuItem key={link.href}>
-                <Link href={link.href} legacyBehavior passHref>
                     <SidebarMenuButton
-                    isActive={pathname === link.href}
-                    className="w-full justify-start"
+                      asChild
+                      isActive={pathname === link.href}
+                      className="w-full justify-start"
                     >
-                    <link.icon className="h-4 w-4 mr-2" />
-                    {link.label}
+                      <Link href={link.href}>
+                        <link.icon className="h-4 w-4 mr-2" />
+                        {link.label}
+                      </Link>
                     </SidebarMenuButton>
-                </Link>
                 </SidebarMenuItem>
             ))}
         </SidebarMenu>
