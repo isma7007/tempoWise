@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +15,8 @@ import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { seedInitialData } from '@/lib/data';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, UserCredential, User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 
 const formSchema = z.object({
@@ -43,53 +44,25 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!auth || !firestore) return;
-
-    const handleAuthSuccess = async (user: User) => {
-      if (mode === 'signup') {
-        // Await seeding and then navigate
-        await seedInitialData(user.uid, firestore);
-      }
-      router.push('/');
-      setIsLoading(false);
-    };
-
-    const handleAuthError = (error: any) => {
-      toast({
-        title: `Authentication Failed`,
-        description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
-        variant: 'destructive',
-      });
-      setIsLoading(false);
-    };
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && isLoading) { // Process only if we initiated the auth change
-        handleAuthSuccess(user).catch(handleAuthError);
-        unsubscribe();
-      }
-    }, handleAuthError);
-
-    return () => unsubscribe();
-  }, [auth, firestore, isLoading, mode, router, toast]);
-
   const onSubmit = async (data: UserFormValue) => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
     try {
         if (mode === 'login') {
-            await initiateEmailSignIn(auth, data.email, data.password);
+            await signInWithEmailAndPassword(auth, data.email, data.password);
         } else {
-            await initiateEmailSignUp(auth, data.email, data.password);
+            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            await seedInitialData(userCredential.user.uid, firestore);
         }
+        router.push('/');
     } catch (error: any) {
         toast({
             title: `Authentication Failed`,
             description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
             variant: 'destructive',
         });
-        setIsLoading(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
