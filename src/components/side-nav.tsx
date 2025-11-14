@@ -45,10 +45,10 @@ export default function SideNav() {
                   isActive={pathname === link.href}
                   className="w-full justify-start"
                 >
-                  <>
+                  <div>
                     <link.icon className="h-4 w-4 mr-2" />
                     {link.label}
-                  </>
+                  </div>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -66,10 +66,10 @@ export default function SideNav() {
                           isActive={pathname === link.href}
                           className="w-full justify-start"
                         >
-                          <>
+                          <div>
                             <link.icon className="h-4 w-4 mr-2" />
                             {link.label}
-                          </>
+                          </div>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
