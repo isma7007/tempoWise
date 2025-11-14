@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -43,17 +43,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
   const { toast } = useToast();
 
-  const onSubmit = async (data: UserFormValue) => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (!auth || !firestore) return;
 
-    const handleAuthSuccess = (user: User) => {
+    const handleAuthSuccess = async (user: User) => {
       if (mode === 'signup') {
-        seedInitialData(user.uid, firestore);
+        // Await seeding and then navigate
+        await seedInitialData(user.uid, firestore);
       }
       router.push('/');
       setIsLoading(false);
-      unsubscribe();
-    }
+    };
 
     const handleAuthError = (error: any) => {
       toast({
@@ -62,15 +62,21 @@ export function AuthForm({ mode }: AuthFormProps) {
         variant: 'destructive',
       });
       setIsLoading(false);
-      unsubscribe();
-    }
-    
+    };
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if(user) {
-            handleAuthSuccess(user);
-        }
+      if (user && isLoading) { // Process only if we initiated the auth change
+        handleAuthSuccess(user).catch(handleAuthError);
+        unsubscribe();
+      }
     }, handleAuthError);
 
+    return () => unsubscribe();
+  }, [auth, firestore, isLoading, mode, router, toast]);
+
+  const onSubmit = async (data: UserFormValue) => {
+    if (!auth) return;
+    setIsLoading(true);
     try {
         if (mode === 'login') {
             await initiateEmailSignIn(auth, data.email, data.password);
@@ -78,7 +84,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             await initiateEmailSignUp(auth, data.email, data.password);
         }
     } catch (error: any) {
-        handleAuthError(error);
+        toast({
+            title: `Authentication Failed`,
+            description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
+            variant: 'destructive',
+        });
+        setIsLoading(false);
     }
   };
 
