@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, LayoutGrid, ListTodo, Settings, Target, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   SidebarHeader,
   SidebarMenu,
@@ -40,16 +39,18 @@ export default function SideNav() {
         <SidebarMenu>
           {links.map((link) => (
             <SidebarMenuItem key={link.href}>
+              <Link href={link.href} passHref>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === link.href}
                   className="w-full justify-start"
                 >
-                  <Link href={link.href}>
+                  <>
                     <link.icon className="h-4 w-4 mr-2" />
                     {link.label}
-                  </Link>
+                  </>
                 </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
@@ -59,16 +60,18 @@ export default function SideNav() {
          <SidebarMenu>
             {bottomLinks.map((link) => (
                 <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === link.href}
-                      className="w-full justify-start"
-                    >
-                      <Link href={link.href}>
-                        <link.icon className="h-4 w-4 mr-2" />
-                        {link.label}
-                      </Link>
-                    </SidebarMenuButton>
+                    <Link href={link.href} passHref>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === link.href}
+                          className="w-full justify-start"
+                        >
+                          <>
+                            <link.icon className="h-4 w-4 mr-2" />
+                            {link.label}
+                          </>
+                        </SidebarMenuButton>
+                    </Link>
                 </SidebarMenuItem>
             ))}
         </SidebarMenu>

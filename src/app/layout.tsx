@@ -4,6 +4,8 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/toaster';
 import SideNav from '@/components/side-nav';
 import { AppHeader } from '@/components/app-header';
+import { FirebaseClientProvider } from '@/firebase';
+import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
   title: 'TempoWise',
@@ -26,19 +28,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider>
-            <Sidebar>
-                <SideNav />
-            </Sidebar>
-            <SidebarInset className="bg-background/80">
-                <div className="flex flex-col h-full">
-                    <AppHeader />
-                    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-                        {children}
-                    </div>
-                </div>
-            </SidebarInset>
-        </SidebarProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
