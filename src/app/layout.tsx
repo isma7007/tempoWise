@@ -6,6 +6,7 @@ import SideNav from '@/components/side-nav';
 import { AppHeader } from '@/components/app-header';
 import { FirebaseClientProvider } from '@/firebase';
 import { AuthProvider } from '@/components/auth-provider';
+import { FocusModeProvider } from '@/context/focus-mode-context';
 
 export const metadata: Metadata = {
   title: 'TempoWise',
@@ -29,9 +30,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <FocusModeProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </FocusModeProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

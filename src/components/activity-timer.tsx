@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -11,6 +12,8 @@ import { useFirebase, useMemoFirebase, useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { addActivity } from '@/app/data/operations';
 import type { Category } from '@/lib/types';
+import { useFocusMode } from '@/context/focus-mode-context';
+import { cn } from '@/lib/utils';
 
 
 export function ActivityTimer() {
@@ -23,6 +26,7 @@ export function ActivityTimer() {
 
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
+  const { isFocusMode, setIsFocusMode } = useFocusMode();
 
   const categoriesRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -60,12 +64,15 @@ export function ActivityTimer() {
     }
     if (!isRunning) {
       setStartTime(new Date());
+      setIsFocusMode(true);
     }
     setIsRunning(!isRunning);
   };
   
   const handleStop = async () => {
     if (!firestore || !user || !startTime || !selectedCategory) return;
+    
+    setIsFocusMode(false);
 
     try {
       await addActivity(firestore, user.uid, {
@@ -101,9 +108,12 @@ export function ActivityTimer() {
     setTags(prevTags => [...new Set([...prevTags, ...suggestedTags])]);
   }, []);
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  const timerContent = (
+    <div className={cn(
+      "space-y-4 transition-all duration-300",
+      isFocusMode && "fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
+    )}>
+      <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4", isFocusMode && "hidden")}>
         <Input 
           placeholder="What are you working on?" 
           value={description}
@@ -131,29 +141,43 @@ export function ActivityTimer() {
         </Select>
       </div>
 
-      <AITagSuggester description={description} onTagsSuggested={onTagsSuggested} />
+      <div className={cn(isFocusMode && "hidden")}>
+        <AITagSuggester description={description} onTagsSuggested={onTagsSuggested} />
+      </div>
       
-      <div className="flex flex-wrap gap-2">
+      <div className={cn("flex flex-wrap gap-2", isFocusMode && "hidden")}>
         {tags.map((tag, index) => (
           <span key={index} className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-1 rounded-full">{tag}</span>
         ))}
       </div>
 
-      <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
-        <div className="font-mono text-3xl font-bold text-foreground">
+      <div className={cn(
+          "flex items-center justify-between p-4 rounded-lg bg-muted",
+          isFocusMode && "flex-col h-64 w-96 justify-center gap-6"
+      )}>
+        <div className={cn(
+            "font-mono text-3xl font-bold text-foreground",
+            isFocusMode && "text-7xl"
+        )}>
           {formatTime(time)}
         </div>
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={handleStartPause}>
-            {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          <Button size="icon" variant="outline" onClick={handleStartPause} className={cn(isFocusMode && "w-16 h-16 rounded-full")}>
+            {isRunning ? <Pause className={cn("h-5 w-5", isFocusMode && "h-8 w-8")} /> : <Play className={cn("h-5 w-5", isFocusMode && "h-8 w-8")} />}
             <span className="sr-only">{isRunning ? 'Pause' : 'Start'}</span>
           </Button>
-          <Button size="icon" variant="destructive" onClick={handleStop} disabled={!isRunning && time === 0}>
-            <Square className="h-5 w-5" />
+          <Button size="icon" variant="destructive" onClick={handleStop} disabled={!isRunning && time === 0} className={cn(isFocusMode && "w-16 h-16 rounded-full")}>
+            <Square className={cn("h-5 w-5", isFocusMode && "h-8 w-8")} />
             <span className="sr-only">Stop</span>
           </Button>
         </div>
       </div>
     </div>
   );
+
+  if (isFocusMode) {
+      return ReactDOM.createPortal(timerContent, document.body);
+  }
+
+  return timerContent;
 }

@@ -9,6 +9,7 @@ import { AppHeader } from "./app-header";
 import { Loader2 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { seedInitialData } from "@/app/data/operations";
+import { useFocusMode } from "@/context/focus-mode-context";
 
 const protectedRoutes = ["/", "/activities", "/goals", "/settings", "/statistics"];
 const authRoutes = ["/login", "/signup"];
@@ -16,6 +17,7 @@ const authRoutes = ["/login", "/signup"];
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
     const { firestore } = useFirebase();
+    const { isFocusMode } = useFocusMode();
     const pathname = usePathname();
     const router = useRouter();
     const [isSeeding, setIsSeeding] = useState(false);
@@ -39,11 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const userDocRef = doc(firestore, 'users', user.uid);
                 const userDoc = await getDoc(userDocRef);
 
-                if (!userDoc.exists()) {
+                if (!userDoc.exists() || !userDoc.data()?.seeded) {
                     setIsSeeding(true);
-                    await seedInitialData(user.uid, firestore);
-                    // Don't set isSeeding to false immediately, let the redirect happen
-                    // The component will unmount, and state will be reset on next load
+                    try {
+                        await seedInitialData(user.uid, firestore);
+                    } finally {
+                        setIsSeeding(false);
+                    }
                 }
             }
 
@@ -73,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 <Sidebar>
                     <SideNav />
                 </Sidebar>
-                <SidebarInset className="bg-background/80">
+                <SidebarInset className={`bg-background/80 transition-filter duration-300 ${isFocusMode ? 'filter blur-sm' : ''}`}>
                     <div className="flex flex-col h-full">
                         <AppHeader />
                         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
