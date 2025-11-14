@@ -2,13 +2,16 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityTable } from "@/components/activity-table";
-import { useCollection, useFirebase } from "@/firebase";
+import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 
 export default function ActivitiesPage() {
   const { firestore, user } = useFirebase();
-  const activitiesRef = user ? collection(firestore, 'users', user.uid, 'activities') : null;
-  const { data: activities, isLoading } = useCollection(activitiesRef as any);
+  const activitiesRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'activities');
+  }, [user, firestore]);
+  const { data: activities, isLoading } = useCollection(activitiesRef);
 
   return (
     <Card>
