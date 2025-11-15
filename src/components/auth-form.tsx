@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 
 const formSchema = z.object({
@@ -29,7 +28,6 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { auth } = useFirebase();
-  const router = useRouter();
 
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
@@ -37,44 +35,36 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { toast } = useToast();
 
   const handleAuthError = (error: AuthError) => {
-    let description = error.message;
+    let description = 'An unexpected error occurred. Please try again.';
     if (error.code === 'auth/email-already-in-use') {
         description = 'This email is already registered. Please login or use a different email.';
     } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         description = 'Invalid email or password. Please try again.';
     }
     toast({
-        title: `Authentication Failed`,
+        title: `${mode === 'login' ? 'Login' : 'Sign Up'} Failed`,
         description: description,
         variant: 'destructive',
     });
   }
 
-  const onLogin = async (data: UserFormValue) => {
+  const handleSubmit = async (data: UserFormValue) => {
     if (!auth) return;
     setIsLoading(true);
     try {
+      if (mode === 'signup') {
+        await createUserWithEmailAndPassword(auth, data.email, data.password);
+        // No redirect here. AuthProvider will handle it.
+      } else {
         await signInWithEmailAndPassword(auth, data.email, data.password);
-        router.push('/');
+        // No redirect here. AuthProvider will handle it.
+      }
     } catch (error: any) {
         handleAuthError(error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const onSignup = async (data: UserFormValue) => {
-      if (!auth) return;
-      setIsLoading(true);
-      try {
-          await createUserWithEmailAndPassword(auth, data.email, data.password);
-          router.push('/');
-      } catch (error: any) {
-          handleAuthError(error);
-      } finally {
-          setIsLoading(false);
-      }
-  }
 
   return (
     <Card>
@@ -84,7 +74,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {mode === 'login' ? 'Enter your credentials to access your account.' : 'Create an account to get started.'}
         </CardDescription>
       </CardHeader>
-      <form onSubmit={form.handleSubmit(mode === 'login' ? onLogin : onSignup)}>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>

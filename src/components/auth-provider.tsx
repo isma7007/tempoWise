@@ -11,7 +11,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { seedInitialData } from "@/app/data/operations";
 import { useFocusMode } from "@/context/focus-mode-context";
 
-const protectedRoutes = ["/", "/activities", "/goals", "/settings", "/statistics"];
+const protectedRoutes = ["/", "/activities", "/goals", "settings", "statistics"];
 const authRoutes = ["/login", "/signup"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -21,44 +21,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isSeeded, setIsSeeded] = useState(false);
 
     useEffect(() => {
-        if (isUserLoading) return; // Wait until user status is resolved
+        if (isUserLoading) return; // Don't do anything until we know if user is logged in or not
 
-        const handleUserSession = async () => {
-            const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
-            const isAuthRoute = authRoutes.includes(pathname);
+        const isAuthRoute = authRoutes.includes(pathname);
+        const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
 
-            if (!user) {
-                if (isProtectedRoute) {
-                    router.push('/login');
-                }
-                return;
+        // Case 1: User is not logged in
+        if (!user) {
+            if (isProtectedRoute) {
+                router.push('/login');
             }
+            return;
+        }
 
-            // If user is logged in, check if they have been seeded
-            if (firestore) {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
+        // Case 2: User is logged in
+        const checkAndSeedUser = async () => {
+            if (!firestore || isSeeded) return;
 
-                if (!userDoc.exists() || !userDoc.data()?.seeded) {
-                    setIsSeeding(true);
-                    try {
-                        await seedInitialData(user.uid, firestore);
-                    } finally {
-                        setIsSeeding(false);
-                    }
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists() || !userDoc.data()?.seeded) {
+                setIsSeeding(true);
+                try {
+                    await seedInitialData(user.uid, firestore);
+                } finally {
+                    setIsSeeding(false);
+                    setIsSeeded(true);
                 }
-            }
-
-            if (isAuthRoute) {
-                router.push('/');
+            } else {
+                setIsSeeded(true);
             }
         };
 
-        handleUserSession();
+        checkAndSeedUser();
 
-    }, [user, isUserLoading, pathname, router, firestore]);
+        // After seeding check, handle redirects
+        if (isSeeded && !isSeeding) {
+             if (isAuthRoute) {
+                router.push('/');
+            }
+        }
+
+    }, [user, isUserLoading, pathname, router, firestore, isSeeded, isSeeding]);
 
     if (isUserLoading || isSeeding) {
         return (
@@ -69,9 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
     }
 
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
+    const isLayoutNeeded = user && protectedRoutes.some(route => pathname.startsWith(route) && (route.length === 1 || pathname.length === route.length || pathname[route.length] === '/'));
     
-    if (user && isProtectedRoute) {
+    if (isLayoutNeeded) {
         return (
             <SidebarProvider>
                 <Sidebar>
