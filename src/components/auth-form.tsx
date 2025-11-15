@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -31,35 +31,50 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { auth } = useFirebase();
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<UserFormValue>({
+  const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
   });
   const { toast } = useToast();
 
-  const onSubmit = async (data: UserFormValue) => {
+  const handleAuthError = (error: AuthError) => {
+    let description = error.message;
+    if (error.code === 'auth/email-already-in-use') {
+        description = 'This email is already registered. Please login or use a different email.';
+    } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        description = 'Invalid email or password. Please try again.';
+    }
+    toast({
+        title: `Authentication Failed`,
+        description: description,
+        variant: 'destructive',
+    });
+  }
+
+  const onLogin = async (data: UserFormValue) => {
     if (!auth) return;
     setIsLoading(true);
     try {
-        if (mode === 'login') {
-            await signInWithEmailAndPassword(auth, data.email, data.password);
-        } else {
-            await createUserWithEmailAndPassword(auth, data.email, data.password);
-        }
+        await signInWithEmailAndPassword(auth, data.email, data.password);
         router.push('/');
     } catch (error: any) {
-        toast({
-            title: `Authentication Failed`,
-            description: error.message || (mode === 'login' ? 'Could not sign in.' : 'Could not sign up.'),
-            variant: 'destructive',
-        });
+        handleAuthError(error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const onSignup = async (data: UserFormValue) => {
+      if (!auth) return;
+      setIsLoading(true);
+      try {
+          await createUserWithEmailAndPassword(auth, data.email, data.password);
+          router.push('/');
+      } catch (error: any) {
+          handleAuthError(error);
+      } finally {
+          setIsLoading(false);
+      }
+  }
 
   return (
     <Card>
@@ -69,7 +84,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {mode === 'login' ? 'Enter your credentials to access your account.' : 'Create an account to get started.'}
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(mode === 'login' ? onLogin : onSignup)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -77,14 +92,14 @@ export function AuthForm({ mode }: AuthFormProps) {
               id="email"
               type="email"
               placeholder="m@example.com"
-              {...register('email')}
+              {...form.register('email')}
             />
-            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" {...register('password')} />
-            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            <Input id="password" type="password" {...form.register('password')} />
+            {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
