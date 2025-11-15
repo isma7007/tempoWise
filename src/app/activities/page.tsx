@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { ActivityForm } from "@/components/activity-form";
+import { AppLayout } from "@/components/app-layout";
 
 export default function ActivitiesPage() {
   const { firestore, user } = useFirebase();
@@ -43,7 +44,7 @@ export default function ActivitiesPage() {
   const isLoading = activitiesLoading || categoriesLoading;
 
   return (
-    <>
+    <AppLayout>
       <ActivityForm open={isFormOpen} onOpenChange={setIsFormOpen} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -61,6 +62,6 @@ export default function ActivitiesPage() {
           {activitiesWithCategories && <ActivityTable activities={activitiesWithCategories as any[]} />}
         </CardContent>
       </Card>
-    </>
+    </AppLayout>
   );
 }

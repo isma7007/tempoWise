@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 
 const formSchema = z.object({
@@ -28,11 +29,13 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { auth } = useFirebase();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
+    defaultValues: { email: '', password: '' },
   });
-  const { toast } = useToast();
 
   const handleAuthError = (error: AuthError) => {
     let description = 'An unexpected error occurred. Please try again.';
@@ -40,6 +43,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         description = 'This email is already registered. Please login or use a different email.';
     } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         description = 'Invalid email or password. Please try again.';
+    } else if (error.code === 'auth/network-request-failed') {
+        description = 'Network error. Please check your connection.';
     }
     toast({
         title: `${mode === 'login' ? 'Login' : 'Sign Up'} Failed`,
@@ -51,17 +56,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleSubmit = async (data: UserFormValue) => {
     if (!auth) return;
     setIsLoading(true);
+
     try {
       if (mode === 'signup') {
         await createUserWithEmailAndPassword(auth, data.email, data.password);
-        // No redirect here. AuthProvider will handle it.
       } else {
         await signInWithEmailAndPassword(auth, data.email, data.password);
-        // No redirect here. AuthProvider will handle it.
       }
+      // On success, AuthProvider/AppLayout will handle the redirect.
+       router.push('/');
     } catch (error: any) {
-        handleAuthError(error);
-    } finally {
+      handleAuthError(error);
       setIsLoading(false);
     }
   };
